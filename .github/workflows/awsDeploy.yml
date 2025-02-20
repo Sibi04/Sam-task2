@@ -1,0 +1,70 @@
+name: Deploy and Test SAM Application
+
+on:
+  push:
+    branches:
+      - main  # Change this if you use a different branch for deployment
+
+jobs:
+  deploy:
+    name: Build, Deploy, and Test AWS SAM Application
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout Code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Configure AWS Credentials (Use GitHub Secrets)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # Change this to your AWS region
+
+      # Step 3: Install AWS SAM CLI
+      - name: Install AWS SAM CLI
+        run: |
+          sudo apt-get update && sudo apt-get install -y unzip
+          curl -Lo aws-sam-cli-linux.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+          unzip aws-sam-cli-linux.zip -d sam-installation
+          sudo ./sam-installation/install
+
+      # Step 4: Verify AWS SAM CLI Installation
+      - name: Verify AWS SAM Installation
+        run: sam --version
+
+      # Step 5: Build the SAM Application
+      - name: Build SAM Application 
+        run: sam build
+
+      # Step 6: Deploy the SAM Application
+      - name: Deploy SAM Application
+        run: |
+          sam deploy --no-confirm-changeset --no-fail-on-empty-changeset \
+            --stack-name sam-api-deploy2 \
+            --capabilities CAPABILITY_IAM \
+            --region us-east-1 \
+            --resolve-s3
+
+      # Step 7: Get API Gateway URL from AWS CloudFormation
+      - name: Fetch API Gateway URL
+        id: get-api-url
+        run: |
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name sam-api-deploy2 \
+            --query "Stacks[0].Outputs[?OutputKey=='HelloApi'].OutputValue" \
+            --output text)
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+
+      # Step 8: Test the API with a GET request
+      - name: Test API Endpoint
+        run: |
+          RESPONSE=$(curl -s -o response.txt -w "%{http_code}" $API_URL)
+          echo "Response: $(cat response.txt)"
+          echo "HTTP Status Code: $RESPONSE"
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "API test failed!"
+            exit 1
+          fi
