@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: hello-world.lambda_handler
+      Runtime: python3.9
+      CodeUri: hello-world/
+      Events:
+        HelloApi:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: GET
+
+  TrimbleServicesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: trimble-services.lambda_handler
+      Runtime: python3.9
+      CodeUri: trimble-services/
+      Events:
+        TrimbleApi:
+          Type: Api
+          Properties:
+            Path: /hello/all
+            Method: GET
+
+Outputs:
+  HelloApi:
+    Description: "API Gateway endpoint for Hello World"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello"
+
+  TrimbleApi:
+    Description: "API Gateway endpoint for Trimble Services"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/all"
