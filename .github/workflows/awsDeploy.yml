@@ -22,6 +22,20 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1  # Change this to your AWS region
+          
+       # Install Python 3.9 and ensure it's available
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      # Manually link python3.9 to python
+      - name: Ensure Python 3.9 is on PATH
+        run: |
+          sudo ln -sf $(which python3.9) /usr/bin/python
+          sudo ln -sf $(which python3.9) /usr/bin/python3
+          python --version
+          which python   
 
       # Step 3: Install AWS SAM CLI
       - name: Install AWS SAM CLI
